@@ -3,7 +3,6 @@ using SFA.DAS.Payments.EarningEvents.Messages.External;
 using SFA.DAS.Payments.EarningEvents.Messages.External.Commands;
 using SFA.DAS.Payments.Model.Core.Entities;
 using SFA.DAS.Payments.Model.Core.Incentives;
-using System.Runtime.CompilerServices;
 
 namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Mapping
 {
@@ -17,6 +16,7 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Mapping
         public void Map(CalculateGrowthAndSkillsPayments source, CollectionPeriodModel collectionPeriod, GSLFunctionalSkillEarningsEvent destination)
         {
             destination.JobId = 0;
+            destination.ExternalEarningsId = source.EarningsId;
             destination.FundingPlatformType = FundingPlatformType.DigitalApprenticeshipService;
             destination.Ukprn = source.UKPRN;
             destination.CollectionYear = collectionPeriod.AcademicYear;

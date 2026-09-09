@@ -240,6 +240,26 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
         }
 
         [Test]
+        public void Maps_ExternalEarningsId()
+        {
+            // Arrange
+            var collectionPeriod = new CollectionPeriodModel
+            {
+                AcademicYear = 2627,
+                Period = 1,
+                Status = CollectionPeriodStatus.Open
+            };
+
+            var destinationMessage = new GSLFunctionalSkillEarningsEvent();
+
+            // Act
+            mapper.Map(sourceMessage, collectionPeriod, destinationMessage);
+
+            // Assert
+            destinationMessage.ExternalEarningsId.Should().Be(sourceMessage.EarningsId);
+        }
+
+        [Test]
         public void Maps_Learner_Details()
         {
             // Arrange
