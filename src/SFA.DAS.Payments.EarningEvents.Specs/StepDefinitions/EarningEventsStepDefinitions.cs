@@ -1,7 +1,10 @@
-﻿using Reqnroll;
+﻿using NUnit.Framework;
+using Reqnroll;
+using SFA.DAS.Payments.EarningEvents.Messages.Events;
 using SFA.DAS.Payments.EarningEvents.Messages.External;
 using SFA.DAS.Payments.EarningEvents.Messages.External.Commands;
 using SFA.DAS.Payments.EarningEvents.Specs.Handlers;
+using SFA.DAS.Payments.Messages.Common.Events;
 using SFA.DAS.Payments.Model.Core;
 using SFA.DAS.Payments.Model.Core.Entities;
 using UUIDNext;
@@ -18,10 +21,16 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         private readonly ScenarioContext scenarioContext;
         private readonly MessagingContext messagingContext;
         private TestSession testSession;
-        private Model.Core.CollectionPeriod collectionPeriod;
+        private CollectionPeriod collectionPeriod;
         private short currentAcademicYear;
         private CollectionPeriod currentPeriod;
         private Guid previousIdentifier;
+        private DateTime startDate;
+        private EarningType earningType;
+        private byte ageAtStartOfTraining;
+        private EmployerType employerType;
+        private Guid earningsId;
+        private List<EarningPeriod> earningPeriods;
 
         public EarningEventsStepDefinitions(ScenarioContext scenarioContext)
         {
@@ -37,14 +46,34 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         public async Task BeforeScenario()
         {
             testSession = new TestSession();
-            await testSession.DataContext.ClearCollectionPeriodsData();
             SetCurrentCollectionYear();
+            startDate = DateTime.Today;
+            earningType = EarningType.Milestone1;
+            ageAtStartOfTraining = 21;
+            employerType = EmployerType.Levy;
+            earningsId = Guid.Empty;
+            earningPeriods = new List<EarningPeriod>();
             Console.WriteLine($"UKPRN : {testSession.Provider.Ukprn}, ULN: {testSession.Learner.Uln}, collection year: {currentAcademicYear}");
         }
 
         [AfterScenario]
         public void AfterScenario()
         {
+        }
+
+        [Given("a CalculatedRequiredLevyAmount message is received for a Levy employer with a GSO learner")]
+        [Given("the Employer has insufficient funds")]
+        [Given("the employer has insufficient levy balance for the full amount of the payment")]
+        [Given("the employers remaining balance will be used first and co-investment used for the remainder")]
+        [Given("the employer has no levy balance available")]
+        public void BlankStep()
+        {
+        }
+
+        [Given("a message is received for a Levy employer with a GSO learner")]
+        public void MessageIsReceivedForLevyEmployer()
+        {
+            employerType = EmployerType.Levy;
         }
 
         [Given("the collection period has opened recently")]
@@ -55,8 +84,6 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
             testSession.DataContext.CollectionPeriods.Add(new CollectionPeriodModel
             {
                 AcademicYear = currentPeriod.AcademicYear,
-                CalendarMonth = (byte)DateTime.Today.Month,
-                CalendarYear = (byte)DateTime.Today.Year,
                 CompletionDate = DateTime.Today,
                 EndDateTime = null,
                 Period = currentPeriod.Period,
@@ -65,6 +92,76 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                 Status = CollectionPeriodStatus.Open
             });
             await testSession.DataContext.SaveChangesAsync();
+        }
+
+        [Given("a Learner changes from a Levy to a Non-levy employer")]
+        public void ALearnerChangesFromALevyToANonLevyEmployer()
+        {
+            employerType = EmployerType.NonLevy;
+            earningPeriods = new List<EarningPeriod>
+            {
+                new EarningPeriod
+                {
+                    Amount = 300,
+                    DeliveryPeriod = 1,
+                    EarningType = EarningType.Learning,
+                    Employer = new Employer
+                    {
+                        AccountId = 123456,
+                        EmployerType = EmployerType.Levy,
+                        FundingAccountId = 123456
+                    },
+                    LearningId = 12345
+                },
+                new EarningPeriod
+                {
+                    Amount = 300,
+                    DeliveryPeriod = 1,
+                    EarningType = EarningType.Learning,
+                    Employer = new Employer
+                    {
+                        AccountId = 123456,
+                        EmployerType = EmployerType.NonLevy,
+                        FundingAccountId = 123456
+                    },
+                    LearningId = 12345
+                }
+            };
+        }
+
+        [Given("a Learner changes from a Non-Levy to a Levy employer")]
+        public void ALearnerChangesFromANonLevyToALevyEmployer()
+        {
+            employerType = EmployerType.Levy;
+            earningPeriods = new List<EarningPeriod>
+            {
+                new EarningPeriod
+                {
+                    Amount = 300,
+                    DeliveryPeriod = 1,
+                    EarningType = EarningType.Learning,
+                    Employer = new Employer
+                    {
+                        AccountId = 123456,
+                        EmployerType = EmployerType.NonLevy,
+                        FundingAccountId = 123456
+                    },
+                    LearningId = 12345
+                },
+                new EarningPeriod
+                {
+                    Amount = 300,
+                    DeliveryPeriod = 1,
+                    EarningType = EarningType.Learning,
+                    Employer = new Employer
+                    {
+                        AccountId = 123456,
+                        EmployerType = EmployerType.Levy,
+                        FundingAccountId = 123456
+                    },
+                    LearningId = 12345
+                }
+            };
         }
 
         [Given("an employer has already approved the initial funding a learner on an Apprenticeship Unit course")]
@@ -142,12 +239,70 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
             Console.WriteLine($"Previous id is: {previousIdentifier}");
         }
 
-        [When("new changes are approved and the resultant earnings are sent to the Payments system")]
-        public async Task WhenNewChangesAreApprovedAndTheResultantEarningsAreSentToThePaymentsSystem()
+        [Given("the learning start date is on or after 1 August 2026")]
+        public void GivenTheLearningStartDateIsOnOrAfter1stAugust2026()
         {
+            startDate = new DateTime(2026, 8, 1);
+        }
+
+        [Given("the learning start date is before 1 August 2026")]
+        public void GivenTheLearningStartDateIsBefore1StAugust2026()
+        {
+            startDate = new DateTime(2026, 7, 31);
+        }
+        [Given("the transaction type is a {word} payment")]
+        public void GivenTheTransactionTypeIsAPayment(string transactionType)
+        {
+            if (!Enum.TryParse(transactionType, true, out EarningType parsedEarningType) ||
+                parsedEarningType is not (EarningType.Learning
+                    or EarningType.Completion
+                    or EarningType.Milestone1))
+            {
+                Assert.Fail($"Unsupported transaction type: {transactionType}");
+            }
+
+            earningType = parsedEarningType;
+        }
+
+        [Given("the learner is aged under 25 on the start date")]
+        public void GivenTheLearnerIsAgedUnder25OnTheStartDate()
+        {
+            ageAtStartOfTraining = 24;
+        }
+
+        [Given("the learner is 25 or older")]
+        public void GivenTheLearnerIsAged25OrOlderOnTheStartDate()
+        {
+            ageAtStartOfTraining = 25;
+        }
+
+        [When("new changes are approved and the resultant earnings are sent to the Payments system")]
+        [When("the payments are generated")]
+        public async Task WhenPaymentsAreGenerated()
+        {
+            earningsId = Uuid.NewDatabaseFriendly(Database.SqlServer);
+            if (earningPeriods.Count == 0)
+            {
+                earningPeriods = new List<EarningPeriod>
+                {
+                    new EarningPeriod
+                    {
+                        Amount = 300,
+                        DeliveryPeriod = 1,
+                        EarningType = earningType,
+                        Employer = new Employer
+                        {
+                            AccountId = 123456,
+                            EmployerType = employerType,
+                            FundingAccountId = 123456
+                        },
+                        LearningId = 12345
+                    }
+                };
+            }
             var earnings = new CalculateGrowthAndSkillsPayments
             {
-                EarningsId = Uuid.NewDatabaseFriendly(Database.SqlServer),
+                EarningsId = earningsId,
                 UKPRN = testSession.Provider.Ukprn,
                 EmployerContribution = 1,
                 Learner = new Learner
@@ -158,13 +313,13 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                 },
                 Training = new Training
                 {
-                    AgeAtStartOfTraining = 21,
+                    AgeAtStartOfTraining = ageAtStartOfTraining,
                     CourseCode = "ZSC00001",
                     CourseReference = "ZSC00001",
                     CourseType = CourseType.ShortCourse,
                     LearningType = Messages.External.LearningType.ApprenticeshipUnit,
                     PlannedEndDate = DateTime.Today.AddMonths(1),
-                    StartDate = DateTime.Today,
+                    StartDate = startDate,
                     TrainingStatus = TrainingStatus.Continuing,
                     LearningKey = Uuid.NewDatabaseFriendly(Database.SqlServer)
                 },
@@ -173,8 +328,8 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                     new Earnings
                     {
                         AcademicYear = currentAcademicYear,
-                        PricePeriods = new List<PricePeriod>
-                        {
+                        PricePeriods =                 
+                        [
                             new PricePeriod
                             {
                                 StartDate = DateTime.Now,
@@ -182,24 +337,9 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                                 InstalmentAmount = 300,
                                 NumberOfInstalments = 1,
                                 Price = 1000,
-                                Periods = new List<EarningPeriod>
-                                {
-                                    new EarningPeriod
-                                    {
-                                        Amount = 300,
-                                        DeliveryPeriod = 1,
-                                        EarningType = EarningType.Milestone1,
-                                        Employer = new Employer
-                                        {
-                                            AccountId = 123456,
-                                            EmployerType = EmployerType.Levy,
-                                            FundingAccountId = 123456
-                                        },
-                                        LearningId = 12345
-                                    }
-                                }
+                                Periods = earningPeriods
                             }
-                        }
+                        ]
                     }
 
                 }
@@ -249,6 +389,114 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         {
             await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
                 .Any(earning => IsLaterThan(previousIdentifier, earning.EventId)),"Failed to find the short course earning event");
+        }
+
+        [Then(@"the payment is fully funded by SFA \(100%\)")]
+        public async Task PaymentLineIsGeneratedFor100Investment()
+        {
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Any(earning => earning.ExternalEarningsId == earningsId), "Failed to find the short course earning event");
+
+            var earningEvents = GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner).ToList();
+
+            Assert.That(earningEvents.Count, Is.EqualTo(1));
+
+            var gslShortCourseEvent = earningEvents.Single();
+            CheckSfaContributionPercentage(gslShortCourseEvent, 1m);
+
+        }
+
+        [Then(@"the payment funding is split between 'SFA co-investment' \(95%\) and 'Employer co-investment' \(5%\)")]
+        public async Task ThenPaymentLinesAreGenerated95SplitBetweenSfaCoInvestmentAndEmployerCoInvestment()
+        {
+
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Any(earning => earning.ExternalEarningsId == earningsId), "Failed to find the short course earning event");
+
+            var earningEvents = GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner).ToList();
+            Assert.That(earningEvents.Count, Is.EqualTo(1));
+
+            var gslShortCourseEvent = earningEvents.Single();
+            CheckSfaContributionPercentage(gslShortCourseEvent, 0.95m);
+        }
+
+        [Then(@"the payment funding is split between 'SFA co-investment' \(75%\) and 'Employer co-investment' \(25%\)")]
+        public async Task ThenPaymentLinesAreGenerated75SplitBetweenSfaCoInvestmentAndEmployerCoInvestment()
+        {
+
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Any(earning => earning.ExternalEarningsId == earningsId), "Failed to find the short course earning event");
+
+            var earningEvents = GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner).ToList();
+            Assert.That(earningEvents.Count, Is.EqualTo(1));
+
+            var gslShortCourseEvent = earningEvents.Single();
+            CheckSfaContributionPercentage(gslShortCourseEvent, 0.75m);
+        }
+
+        [Then("the payment funding percentage is set to Non-Levy: {decimal} and Levy: {decimal}")]
+        public async Task ThenLevyAndNonLevySfaPercentagesAreSet(decimal nonLevyPercentage, decimal levyPercentage)
+        {
+
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Any(earning => earning.ExternalEarningsId == earningsId), "Failed to find the short course earning event");
+
+            var earningEvents = GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner).ToList();
+            Assert.That(earningEvents.Count, Is.EqualTo(1));
+            
+            var gslShortCourseEvent = earningEvents.Single();
+            CheckEmployerTypeChangeContribution(gslShortCourseEvent, nonLevyPercentage, levyPercentage);
+        }
+
+        private void CheckSfaContributionPercentage(GSLShortCourseEarningsEvent gslShortCourseEvent, decimal sfaContributionPercentage)
+        {
+            var shortCourseEarnings = gslShortCourseEvent.Earnings;
+            if (shortCourseEarnings != null)
+            {
+                var courseEarnings = shortCourseEarnings.ToList();
+
+                Assert.That(courseEarnings.Count, Is.EqualTo(1));
+                foreach (var periods in courseEarnings)
+                {
+                    foreach (var period in periods.Periods)
+                    {
+                        Assert.That(period.SfaContributionPercentage, Is.EqualTo(sfaContributionPercentage));
+                    }
+                }
+            }
+            else
+            {
+                throw new ReqnrollException("Short course earnings not found");
+            }
+        }
+        private void CheckEmployerTypeChangeContribution(GSLShortCourseEarningsEvent gslShortCourseEvent, decimal nonLevyPercentage, decimal levyPercentage)
+        {
+            var shortCourseEarnings = gslShortCourseEvent.Earnings;
+            if (shortCourseEarnings != null)
+            {
+                var courseEarnings = shortCourseEarnings.ToList();
+
+                Assert.That(courseEarnings.Count, Is.EqualTo(2));
+
+                foreach (var periods in courseEarnings)
+                {
+                    foreach (var period in periods.Periods)
+                    {
+                        if (period.ApprenticeshipEmployerType == ApprenticeshipEmployerType.NonLevy)
+                        {
+                            Assert.That(period.SfaContributionPercentage, Is.EqualTo(nonLevyPercentage));
+                        }
+                        else if (period.ApprenticeshipEmployerType == ApprenticeshipEmployerType.Levy)
+                        {
+                            Assert.That(period.SfaContributionPercentage, Is.EqualTo(levyPercentage));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                throw new ReqnrollException("Short course earnings not found");
+            }
         }
 
         private bool IsLaterThan(Guid previousEventId, Guid newEventId)

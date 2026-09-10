@@ -46,6 +46,7 @@ stages:
 
 - stage: Deploy_DAS
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to DAS
   variables:
   - group: DAS das-payments-v2-earningevents
@@ -60,6 +61,7 @@ stages:
 
 - stage: Deploy_DST
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to DST
   variables:
   - group: DST das-payments-v2-earningevents
@@ -74,6 +76,7 @@ stages:
 
 - stage: Deploy_SIT
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to SIT
   variables:
   - group: SIT das-payments-v2-earningevents
@@ -88,6 +91,7 @@ stages:
 
 - stage: Deploy_ETE
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to ETE
   variables:
   - group: ETE das-payments-v2-earningevents
@@ -102,6 +106,7 @@ stages:
 
 - stage: Deploy_MO
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to MO
   variables:
   - group: MO das-payments-v2-earningevents
@@ -116,6 +121,7 @@ stages:
 
 - stage: Deploy_PP
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to PP
   variables:
   - group: PP das-payments-v2-earningevents
@@ -130,6 +136,7 @@ stages:
 
 - stage: Deploy_PD
   dependsOn: NuGetPublish
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'))
   displayName: Deploy to PD
   variables:
   - group: PD das-payments-v2-earningevents

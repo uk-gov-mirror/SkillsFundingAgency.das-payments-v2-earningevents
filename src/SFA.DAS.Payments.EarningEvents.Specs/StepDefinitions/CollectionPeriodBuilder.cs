@@ -6,7 +6,7 @@
         protected int Year { get; set; } = -1;
         protected int Month { get; set; } = -1;
 
-        public Model.Core.CollectionPeriod Build()
+        public SFA.DAS.Payments.Model.Core.CollectionPeriod Build()
         {
             short academicYear;
 
@@ -31,7 +31,7 @@
                 }
             }
 
-            var instance = new Model.Core.CollectionPeriod
+            var instance = new SFA.DAS.Payments.Model.Core.CollectionPeriod
             {
                 AcademicYear = academicYear,
                 Period = Period,

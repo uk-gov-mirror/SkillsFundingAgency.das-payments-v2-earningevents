@@ -24,10 +24,11 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                 .Build();
             System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
             DASEndpoint = await CreateEndpoint("DASServiceBusConnectionString", sendOnly: true);
-            PV2Endpoint = await CreateEndpoint("ServiceBusConnectionString", sendOnly: false, eventToSubscribeTo: typeof(GSLShortCourseEarningsEvent));
+            PV2Endpoint = await CreateEndpoint("ServiceBusConnectionString", sendOnly: false,
+                eventsToSubscribeTo: new[] { typeof(GSLShortCourseEarningsEvent), typeof(GSLApprenticeshipEarningsEvent) });
         }
 
-        public static async Task<IEndpointInstance> CreateEndpoint(string connectionName, bool sendOnly = false, Type eventToSubscribeTo = null)
+        public static async Task<IEndpointInstance> CreateEndpoint(string connectionName, bool sendOnly = false, Type[] eventsToSubscribeTo = null)
         {
             var endpointConfig = new EndpointConfiguration("sfa-das-payments-earningevents-bridge-specs");
             var conventions = endpointConfig.Conventions();
@@ -51,9 +52,12 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
             var startable = await Endpoint.Create(endpointConfig);
             var endpoint = await startable.Start();
 
-            if (!sendOnly && eventToSubscribeTo != null)
+            if (!sendOnly && eventsToSubscribeTo != null)
             {
-                await endpoint.Subscribe(eventToSubscribeTo);
+                foreach (var eventToSubscribeTo in eventsToSubscribeTo)
+                {
+                    await endpoint.Subscribe(eventToSubscribeTo);
+                }
             }
 
             return endpoint;

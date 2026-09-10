@@ -19,9 +19,9 @@
 		<PackageReference Include="NUnit.ConsoleRunner" Version="3.22.0" />
 
 
-		<PackageReference Include="SFA.DAS.Payments.Application" Version="2.4.1-prerelease-62" />
-		<PackageReference Include="SFA.DAS.Payments.Core" Version="2.4.1-prerelease-62" />
-		<PackageReference Include="SFA.DAS.Payments.Model.Core" Version="2.4.1-prerelease-62" />
+		<PackageReference Include="SFA.DAS.Payments.Application" Version="2.6.0-prerelease-9" />
+		<PackageReference Include="SFA.DAS.Payments.Core" Version="2.6.0-prerelease-9" />
+		<PackageReference Include="SFA.DAS.Payments.Model.Core" Version="2.6.0-prerelease-9" />
 		<PackageReference Include="UUIDNext" Version="4.2.4" />
 	</ItemGroup>
 
@@ -43,6 +43,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\SFA.DAS.Payments.EarningEvents.Data\SFA.DAS.Payments.EarningEvents.Data.csproj" />
 	  <ProjectReference Include="..\SFA.DAS.Payments.EarningEvents.Messages.External\SFA.DAS.Payments.EarningEvents.Messages.External.csproj" />
 	  <ProjectReference Include="..\SFA.DAS.Payments.EarningEvents.Messages\SFA.DAS.Payments.EarningEvents.Messages.csproj" />
 	</ItemGroup>
