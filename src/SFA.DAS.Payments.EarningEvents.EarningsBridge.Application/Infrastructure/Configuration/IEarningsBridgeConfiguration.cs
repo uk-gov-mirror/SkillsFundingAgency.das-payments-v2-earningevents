@@ -8,5 +8,6 @@
         string ServiceBusConnectionString { get; set; }
         string CollectionPeriodApiBaseAddress { get; set; }
         string CollectionPeriodApiKey { get; set; }
+        string ReprocessPendingEarningsSchedule { get; set; }
     }
 }

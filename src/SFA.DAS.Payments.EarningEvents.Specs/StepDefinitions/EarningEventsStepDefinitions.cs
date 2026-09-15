@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using Microsoft.EntityFrameworkCore;
+using NUnit.Framework;
 using Reqnroll;
 using SFA.DAS.Payments.EarningEvents.Messages.Events;
 using SFA.DAS.Payments.EarningEvents.Messages.External;
@@ -12,6 +13,7 @@ using UUIDNext.Tools;
 using CourseType = SFA.DAS.Payments.EarningEvents.Messages.External.CourseType;
 using EarningPeriod = SFA.DAS.Payments.EarningEvents.Messages.External.EarningPeriod;
 using Learner = SFA.DAS.Payments.EarningEvents.Messages.External.Learner;
+using ModelCore = SFA.DAS.Payments.Model.Core;
 
 namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
 {
@@ -21,7 +23,7 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         private readonly ScenarioContext scenarioContext;
         private readonly MessagingContext messagingContext;
         private TestSession testSession;
-        private Model.Core.CollectionPeriod collectionPeriod;
+        private ModelCore.CollectionPeriod collectionPeriod;
         private short currentAcademicYear;
         private CollectionPeriod currentPeriod;
         private Guid previousIdentifier;
@@ -78,15 +80,58 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
 
         [Given("the collection period has opened recently")]
         [Given("that the collection period has opened recently")]
+        [When("the collection period has opened recently")]
         public async Task GivenThatTheCollectionPeriodHasOpenedRecently()
         {
-            currentPeriod = new CollectionPeriodBuilder().WithDate(DateTime.Today).Build();
-            testSession.DataContext.CollectionPeriods.Add(new CollectionPeriodModel
+            var period = new CollectionPeriodBuilder().WithDate(DateTime.Today).Build().Period;
+            currentPeriod = new CollectionPeriod { AcademicYear = currentAcademicYear, Period = period };
+            await OpenCollectionPeriod(currentPeriod.AcademicYear, currentPeriod.Period);
+        }
+
+        [Given("no collection period is currently open")]
+        public void GivenNoCollectionPeriodIsCurrentlyOpen()
+        {
+            currentAcademicYear = (short)(currentAcademicYear + 100);
+        }
+
+        [When("a new collection period opens")]
+        public async Task WhenANewCollectionPeriodOpens()
+        {
+            currentPeriod = new CollectionPeriod
             {
                 AcademicYear = currentPeriod.AcademicYear,
+                Period = (byte)(currentPeriod.Period + 1)
+            };
+            await OpenCollectionPeriod(currentPeriod.AcademicYear, currentPeriod.Period);
+        }
+
+        [When("the Earnings Bridge reprocesses pending earnings")]
+        public async Task WhenTheEarningsBridgeReprocessesPendingEarnings()
+        {
+            var baseUrl = TestRunBindings.Config["DASEarningsBridgeFunctionBaseUrl"];
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                Assert.Fail("DASEarningsBridgeFunctionBaseUrl is not configured - set it in appSettings.development.json to the deployed DASEarningsBridge Function app's base URL.");
+            }
+
+            var functionKey = TestRunBindings.Config["DASEarningsBridgeFunctionKey"];
+            var requestUri = $"{baseUrl!.TrimEnd('/')}/ReprocessPendingEarnings?code={functionKey}";
+
+            using var httpClient = new HttpClient();
+            var response = await httpClient.PostAsync(requestUri, null);
+
+            Assert.That(response.IsSuccessStatusCode, Is.True,
+                $"Reprocess pending earnings HTTP trigger returned {(int)response.StatusCode} {response.StatusCode}");
+        }
+
+        private async Task OpenCollectionPeriod(short academicYear, byte period)
+        {
+            testSession.DataContext.CollectionPeriods.Add(new CollectionPeriodModel
+            {
+                AcademicYear = academicYear,
                 CompletionDate = DateTime.Today,
                 EndDateTime = null,
-                Period = currentPeriod.Period,
+                Period = period,
                 ReferenceDataValidationDate = null,
                 StartDateTime = DateTime.Today,
                 Status = CollectionPeriodStatus.Open
@@ -446,6 +491,57 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
             
             var gslShortCourseEvent = earningEvents.Single();
             CheckEmployerTypeChangeContribution(gslShortCourseEvent, nonLevyPercentage, levyPercentage);
+        }
+
+        [Then("the earnings are stored in the Earnings Bridge cache table")]
+        public async Task ThenTheEarningsAreStoredInTheEarningsBridgeCacheTable()
+        {
+            await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarnings
+                .AsNoTracking()
+                .Any(x => x.EarningsId == earningsId), "Failed to find the earnings in the Earnings Bridge cache table");
+        }
+
+        [Then("the earnings are processed")]
+        public async Task ThenTheEarningsAreProcessed()
+        {
+            await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarningsProcessing
+                .AsNoTracking()
+                .Any(x => x.GrowthAndSkillsEarningId == earningsId
+                          && x.AcademicYear == currentPeriod.AcademicYear
+                          && x.CollectionPeriod == currentPeriod.Period
+                          && x.ProcessedOn != null), "Failed to find a processing record marking the earnings as processed for the current collection period");
+        }
+
+        [Then("the outgoing GSL Earnings Event is published")]
+        public async Task ThenTheOutgoingGSLEarningsEventIsPublished()
+        {
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Any(earning => earning.ExternalEarningsId == earningsId), "Failed to find the published short course earning event");
+        }
+
+        [Then("the earnings are marked as processed with a timestamp in the cache table and in the processing table for the current collection period")]
+        public async Task ThenTheEarningsAreMarkedAsProcessedWithATimestampInTheCacheTableAndInTheProcessingTableForTheCurrentCollectionPeriod()
+        {
+            await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarningPricePeriods
+                .AsNoTracking()
+                .Any(x => x.GrowthAndSkillsEarningsId == earningsId
+                          && x.AcademicYear == currentPeriod.AcademicYear
+                          && x.ProcessedOn != null), "Failed to find a cache table price period marked as processed");
+
+            await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarningsProcessing
+                .AsNoTracking()
+                .Any(x => x.GrowthAndSkillsEarningId == earningsId
+                          && x.AcademicYear == currentPeriod.AcademicYear
+                          && x.CollectionPeriod == currentPeriod.Period
+                          && x.ProcessedOn != null), "Failed to find a processing table record marked as processed for the current collection period");
+        }
+
+        [Then("the earnings are not republished for that collection period")]
+        public async Task ThenTheEarningsAreNotRepublishedForThatCollectionPeriod()
+        {
+            await testSession.WaitForIt(() => GSLShortCourseEarningsEventHandler.GetEvents(testSession.Learner)
+                .Count(earning => earning.ExternalEarningsId == earningsId) == 1,
+                "Expected exactly one short course earning event (the original publish, with no republish from the sweep)");
         }
 
         private void CheckSfaContributionPercentage(GSLShortCourseEarningsEvent gslShortCourseEvent, decimal sfaContributionPercentage)

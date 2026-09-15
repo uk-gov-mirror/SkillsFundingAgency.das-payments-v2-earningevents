@@ -86,9 +86,13 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Handlers
             {
                 if (openCollectionPeriods.Any(x => x.AcademicYear == earning.AcademicYear))
                 {
-                    earning.ProcessedOn = DateTime.UtcNow; // if ProcessedOn is not set then will be cached and picked up for processing later
+                    earning.ProcessedOn = DateTime.UtcNow;
                 }
             }
+
+            var matchingOpenPeriods = openCollectionPeriods
+                .Where(period => growthAndSkillsEarningModel.PricePeriods.Any(pricePeriod => pricePeriod.AcademicYear == period.AcademicYear))
+                .ToList();
 
             var requiredPaymentsEvents = _mapper.MapToShortCourseEarningEvents(message, openCollectionPeriods);
 
@@ -104,7 +108,11 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Handlers
             {
                 await _publisher.Publish<DasEarningsReceivedEvent>(fundingSourceEvent);
             }
-            
+
+            foreach (var period in matchingOpenPeriods)
+            {
+                await _repository.MarkEarningProcessed(growthAndSkillsEarningModel.EarningsId, period.AcademicYear, (byte)period.Period, DateTime.UtcNow);
+            }
 
             await _repository.SaveEarnings(growthAndSkillsEarningModel);
         }

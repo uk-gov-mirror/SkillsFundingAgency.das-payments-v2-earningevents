@@ -11,7 +11,8 @@ namespace SFA.DAS.Payments.EarningEvents.Data
 
         public DbSet<GrowthAndSkillsEarningModel> GrowthAndSkillsEarnings { get; set; }
         public DbSet<GrowthAndSkillsEarningPricePeriodModel> GrowthAndSkillsEarningPricePeriods { get; set; }
-        
+        public DbSet<GrowthAndSkillsEarningsProcessingModel> GrowthAndSkillsEarningsProcessing { get; set; }
+
 
         public EarningsDataContext(string connectionString)
         {
@@ -36,6 +37,7 @@ namespace SFA.DAS.Payments.EarningEvents.Data
             modelBuilder.HasDefaultSchema("Payments2");
             modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningModelConfiguration());
             modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningPricePeriodModelConfiguration());
+            modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningsProcessingModelConfiguration());
         }
 
     }

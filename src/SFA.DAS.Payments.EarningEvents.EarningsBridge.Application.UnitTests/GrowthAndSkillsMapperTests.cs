@@ -566,6 +566,151 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
 
 
         [Test]
+        public void MapToCalculateGrowthAndSkillsPayments_MapsPropertiesFromTheStoredEarningModel()
+        {
+            // Arrange
+            var earning = CreateGrowthAndSkillsEarningModel();
+
+            // Act
+            var message = _sut.MapToCalculateGrowthAndSkillsPayments(earning);
+
+            // Assert
+            message.EarningsId.Should().Be(earning.EarningsId);
+            message.UKPRN.Should().Be(earning.UKPRN);
+            message.EmployerContribution.Should().Be(earning.EmployerContribution);
+            message.Learner.LearnerKey.Should().Be(earning.LearnerKey);
+            message.Learner.ULN.Should().Be(earning.LearnerUln);
+            message.Learner.Reference.Should().Be(earning.LearnerReference);
+            message.Training.CourseCode.Should().Be(earning.CourseCode);
+            message.Training.CourseReference.Should().Be(earning.CourseReference);
+            message.Training.StartDate.Should().Be(earning.StartDate);
+            message.Training.AgeAtStartOfTraining.Should().Be(earning.AgeAtStartOfTraining);
+            message.Training.PlannedEndDate.Should().Be(earning.PlannedEndDate);
+            message.Training.ActualEndDate.Should().Be(earning.ActualEndDate);
+            message.Training.LearningKey.Should().Be(earning.LearningKey!.Value);
+            ((int)message.Training.CourseType).Should().Be((int)earning.CourseType);
+            ((int)message.Training.LearningType).Should().Be((int)earning.LearningType);
+            ((int)message.Training.TrainingStatus).Should().Be((int)earning.TrainingStatus);
+        }
+
+        [Test]
+        public void MapToCalculateGrowthAndSkillsPayments_WhenLearningKeyIsNull_MapsToEmptyGuid()
+        {
+            // Arrange
+            var earning = CreateGrowthAndSkillsEarningModel();
+            earning.LearningKey = null;
+
+            // Act
+            var message = _sut.MapToCalculateGrowthAndSkillsPayments(earning);
+
+            // Assert
+            message.Training.LearningKey.Should().Be(Guid.Empty);
+        }
+
+        [Test]
+        public void MapToCalculateGrowthAndSkillsPayments_GroupsPricePeriodsByAcademicYear()
+        {
+            // Arrange
+            var earning = CreateGrowthAndSkillsEarningModel();
+            earning.PricePeriods.Add(new GrowthAndSkillsEarningPricePeriodModel
+            {
+                AcademicYear = 2627,
+                Price = 6000m,
+                StartDate = new DateTime(2027, 1, 1),
+                EndDate = new DateTime(2027, 1, 31),
+                DeliveryPeriod = 1,
+                EarningType = Model.EarningType.Completion,
+                Amount = 3000m,
+                EmployerAccountId = 10000,
+                EmployerType = Model.EmployerType.Levy,
+                FundingAccountId = 10000,
+                ApprenticeshipId = 123457
+            });
+
+            // Act
+            var message = _sut.MapToCalculateGrowthAndSkillsPayments(earning);
+
+            // Assert
+            message.Earnings.Should().HaveCount(2);
+            message.Earnings.Should().ContainSingle(x => x.AcademicYear == 2526 && x.PricePeriods.Count() == 1);
+            message.Earnings.Should().ContainSingle(x => x.AcademicYear == 2627 && x.PricePeriods.Count() == 1);
+        }
+
+        [Test]
+        public void MapToCalculateGrowthAndSkillsPayments_MapsPricePeriodAndEarningPeriodFields()
+        {
+            // Arrange
+            var earning = CreateGrowthAndSkillsEarningModel();
+            var pricePeriod = earning.PricePeriods.Single();
+
+            // Act
+            var message = _sut.MapToCalculateGrowthAndSkillsPayments(earning);
+
+            // Assert
+            var mappedEarnings = message.Earnings.Single();
+            mappedEarnings.AcademicYear.Should().Be(pricePeriod.AcademicYear);
+
+            var mappedPricePeriod = mappedEarnings.PricePeriods.Single();
+            mappedPricePeriod.Price.Should().Be(pricePeriod.Price);
+            mappedPricePeriod.StartDate.Should().Be(pricePeriod.StartDate);
+            mappedPricePeriod.EndDate.Should().Be(pricePeriod.EndDate);
+
+            // NumberOfInstalments/InstalmentAmount/CompletionAmount aren't persisted on the cache table, so they can't be reconstructed.
+            mappedPricePeriod.NumberOfInstalments.Should().Be(0);
+            mappedPricePeriod.InstalmentAmount.Should().Be(0);
+            mappedPricePeriod.CompletionAmount.Should().Be(0);
+
+            var mappedEarningPeriod = mappedPricePeriod.Periods.Single();
+            mappedEarningPeriod.DeliveryPeriod.Should().Be(pricePeriod.DeliveryPeriod);
+            mappedEarningPeriod.Amount.Should().Be(pricePeriod.Amount);
+            mappedEarningPeriod.LearningId.Should().Be(pricePeriod.ApprenticeshipId!.Value);
+            ((int)mappedEarningPeriod.EarningType).Should().Be((int)pricePeriod.EarningType);
+            mappedEarningPeriod.Employer.AccountId.Should().Be(pricePeriod.EmployerAccountId);
+            mappedEarningPeriod.Employer.FundingAccountId.Should().Be(pricePeriod.FundingAccountId);
+            ((int)mappedEarningPeriod.Employer.EmployerType).Should().Be((int)pricePeriod.EmployerType);
+        }
+
+        private GrowthAndSkillsEarningModel CreateGrowthAndSkillsEarningModel()
+        {
+            return new GrowthAndSkillsEarningModel
+            {
+                EarningsId = Guid.NewGuid(),
+                UKPRN = 10002233,
+                LearnerKey = Guid.NewGuid(),
+                LearnerUln = 12345678,
+                LearnerReference = "LEARNREF001",
+                LearningType = Model.LearningType.ApprenticeshipUnit,
+                LearningKey = Guid.NewGuid(),
+                CourseCode = "123456",
+                CourseReference = "ZSC00123",
+                StartDate = new DateTime(2026, 1, 1),
+                AgeAtStartOfTraining = 25,
+                PlannedEndDate = new DateTime(2026, 1, 15),
+                ActualEndDate = new DateTime(2026, 1, 31),
+                TrainingStatus = Model.TrainingStatus.Continuing,
+                EmployerContribution = 1000m,
+                CourseType = Model.CourseType.ShortCourse,
+                PricePeriods = new List<GrowthAndSkillsEarningPricePeriodModel>
+                {
+                    new GrowthAndSkillsEarningPricePeriodModel
+                    {
+                        AcademicYear = 2526,
+                        Price = 5000m,
+                        StartDate = new DateTime(2026, 1, 1),
+                        EndDate = new DateTime(2026, 1, 31),
+                        DeliveryPeriod = 1,
+                        EarningType = Model.EarningType.Milestone1,
+                        Amount = 2000m,
+                        EmployerAccountId = 10000,
+                        EmployerType = Model.EmployerType.Levy,
+                        FundingAccountId = 10000,
+                        ApprenticeshipId = 123456
+                    }
+                }
+            };
+        }
+
+        [Test]
         public void Properties_are_mapped_from_collection_period_API_response_to_collection_period_models()
         {
             // Arrange

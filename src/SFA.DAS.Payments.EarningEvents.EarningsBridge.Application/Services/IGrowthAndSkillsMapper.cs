@@ -13,4 +13,6 @@ public interface IGrowthAndSkillsMapper
     IEnumerable<CollectionPeriodModel> MapCollectionYearToCollectionPeriodModels(CollectionYear collectionYear);
 
     IEnumerable<DasEarningsReceivedEvent> MapToDasEarningsReceivedEvents(CalculateGrowthAndSkillsPayments source, IEnumerable<CollectionPeriodModel> openCollectionPeriods);
+
+    CalculateGrowthAndSkillsPayments MapToCalculateGrowthAndSkillsPayments(GrowthAndSkillsEarningModel earning);
 }

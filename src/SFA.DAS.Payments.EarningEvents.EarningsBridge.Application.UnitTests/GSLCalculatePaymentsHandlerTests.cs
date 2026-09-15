@@ -166,6 +166,7 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
                 Times.Once);
             _repository.Verify(r => r.SaveEarnings(It.Is<GrowthAndSkillsEarningModel>(
                 y => y.PricePeriods.All(p => p.ProcessedOn != null))), Times.Once);
+            _repository.Verify(r => r.MarkEarningProcessed(_message.EarningsId, 2526, 2, It.IsAny<DateTime>()), Times.Once);
         }
 
         [Test]
@@ -189,6 +190,7 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
                 Times.Never);
             _repository.Verify(r => r.SaveEarnings(It.Is<GrowthAndSkillsEarningModel>(
                 y => y.PricePeriods.All(p => p.ProcessedOn == null))), Times.Once);
+            _repository.Verify(r => r.MarkEarningProcessed(It.IsAny<Guid>(), It.IsAny<short>(), It.IsAny<byte>(), It.IsAny<DateTime>()), Times.Never);
         }
 
         [Test]
@@ -281,6 +283,8 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
             _repository.Verify(r => r.SaveEarnings(It.Is<GrowthAndSkillsEarningModel>(
                 y => y.PricePeriods.Where(x => x.AcademicYear == 2526)
                     .All(p => p.ProcessedOn != null))), Times.Once);
+            _repository.Verify(r => r.MarkEarningProcessed(_message.EarningsId, 2526, 2, It.IsAny<DateTime>()), Times.Once);
+            _repository.Verify(r => r.MarkEarningProcessed(_message.EarningsId, 2425, It.IsAny<byte>(), It.IsAny<DateTime>()), Times.Never);
         }
 
         [Test]

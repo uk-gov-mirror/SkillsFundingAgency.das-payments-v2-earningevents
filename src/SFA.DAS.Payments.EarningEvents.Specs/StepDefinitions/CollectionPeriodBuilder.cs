@@ -1,4 +1,6 @@
-﻿namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
+﻿using ModelCore = SFA.DAS.Payments.Model.Core;
+
+namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
 {
     public class CollectionPeriodBuilder
     {
@@ -6,7 +8,7 @@
         protected int Year { get; set; } = -1;
         protected int Month { get; set; } = -1;
 
-        public Model.Core.CollectionPeriod Build()
+        public ModelCore.CollectionPeriod Build()
         {
             short academicYear;
 
@@ -31,7 +33,7 @@
                 }
             }
 
-            var instance = new Model.Core.CollectionPeriod
+            var instance = new ModelCore.CollectionPeriod
             {
                 AcademicYear = academicYear,
                 Period = Period,

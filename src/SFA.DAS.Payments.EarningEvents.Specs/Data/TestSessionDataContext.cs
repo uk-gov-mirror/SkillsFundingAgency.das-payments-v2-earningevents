@@ -1,7 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SFA.DAS.Payments.EarningEvents.Data.Configuration;
 using SFA.DAS.Payments.EarningEvents.Specs.Data.Configurations;
 using SFA.DAS.Payments.EarningEvents.Specs.Models;
-using SFA.DAS.Payments.EarningEvents.Specs.Data.Configurations;
+using SFA.DAS.Payments.EarningEvents.Model;
 using SFA.DAS.Payments.Model.Core.Entities;
 
 namespace SFA.DAS.Payments.EarningEvents.Specs.Data;
@@ -13,6 +14,9 @@ public class TestSessionDataContext : DbContext
     public virtual DbSet<Provider> Providers { get; set; }
     public virtual DbSet<PaymentModel> Payment { get; set; }
     public virtual DbSet<CollectionPeriodModel> CollectionPeriods { get; set; }
+    public virtual DbSet<GrowthAndSkillsEarningModel> GrowthAndSkillsEarnings { get; set; }
+    public virtual DbSet<GrowthAndSkillsEarningPricePeriodModel> GrowthAndSkillsEarningPricePeriods { get; set; }
+    public virtual DbSet<GrowthAndSkillsEarningsProcessingModel> GrowthAndSkillsEarningsProcessing { get; set; }
 
     public TestSessionDataContext(string connectionString)
     {
@@ -31,6 +35,9 @@ public class TestSessionDataContext : DbContext
         modelBuilder.ApplyConfiguration(new ProviderConfiguration());
         modelBuilder.ApplyConfiguration(new PaymentModelConfiguration());
         modelBuilder.ApplyConfiguration(new CollectionPeriodModelConfiguration());
+        modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningModelConfiguration());
+        modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningPricePeriodModelConfiguration());
+        modelBuilder.ApplyConfiguration(new GrowthAndSkillsEarningsProcessingModelConfiguration());
     }
 
     public Provider LeastRecentlyUsed() =>

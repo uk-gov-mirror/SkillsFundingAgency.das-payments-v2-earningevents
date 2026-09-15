@@ -93,6 +93,9 @@
     },
     "dasServiceBusQueueName": {
       "type": "string"
+    },
+    "reprocessPendingEarningsSchedule": {
+      "type": "string"
     }
   },
   "variables": {
@@ -147,6 +150,10 @@
       {
         "name": "DASServiceBusQueueName",
         "value": "[parameters('dasServiceBusQueueName')]"
+      },
+      {
+        "name": "ReprocessPendingEarningsSchedule",
+        "value": "[parameters('reprocessPendingEarningsSchedule')]"
       },
       {
         "name": "DcEarnings2526ConnectionString",

@@ -30,7 +30,8 @@ Populate as follows:
         "AzureWebJobsStorage": "UseDevelopmentStorage=true",
         "AzureWebJobs.HttpExample.Disabled": "true",        
         "DASServiceBusConnectionString": "<< connection string for DAS service bus namespace >>",
-        "DASServiceBusQueueName": "<< name of queue to listen on in DAS service bus namespace >>"        
+        "DASServiceBusQueueName": "<< name of queue to listen on in DAS service bus namespace >>",
+        "ReprocessPendingEarningsSchedule": "<< CRON expression for the ReprocessPendingEarnings timer trigger, e.g. 0 30 1 * * * >>"
   },
    "Host": {
         "LocalHttpPort": 7071,

@@ -63,6 +63,7 @@ builder.Services.AddScoped<IPaymentsServiceBusPublisher, PaymentsServiceBusPubli
 
 builder.Services.AddScoped<ICollectionPeriodService, CollectionPeriodService>();
 builder.Services.AddScoped<IGSLEarningsService, GSLEarningsService>();
+builder.Services.AddScoped<IPendingEarningsReprocessor, PendingEarningsReprocessor>();
 
 builder.Services.AddHostedService<ServiceBusQueueManager>();
 
