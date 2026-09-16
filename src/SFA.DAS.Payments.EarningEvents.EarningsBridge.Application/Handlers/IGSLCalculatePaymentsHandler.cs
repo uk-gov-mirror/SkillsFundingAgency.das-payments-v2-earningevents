@@ -4,5 +4,5 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Handlers;
 
 public interface IGSLCalculatePaymentsHandler
 {
-    Task HandleGslCalculatePaymentsMessage(CalculateGrowthAndSkillsPayments message);
+    Task HandleGslCalculatePaymentsMessage(CalculateGrowthAndSkillsPayments message, bool isReprocessing = false);
 }

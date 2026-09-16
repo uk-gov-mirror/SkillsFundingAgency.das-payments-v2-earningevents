@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
+using SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Handlers;
 using SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Repositories;
-using SFA.DAS.Payments.EarningEvents.Messages.Events;
 
 namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Services;
 
@@ -10,20 +10,20 @@ public class PendingEarningsReprocessor : IPendingEarningsReprocessor
     private readonly ICollectionPeriodService _collectionPeriodService;
     private readonly IEarningsRepository _repository;
     private readonly IGrowthAndSkillsMapper _mapper;
-    private readonly IPaymentsServiceBusPublisher _publisher;
+    private readonly IGSLCalculatePaymentsHandler _handler;
     private readonly ILogger<PendingEarningsReprocessor> _logger;
 
     public PendingEarningsReprocessor(
         ICollectionPeriodService collectionPeriodService,
         IEarningsRepository repository,
         IGrowthAndSkillsMapper mapper,
-        IPaymentsServiceBusPublisher publisher,
+        IGSLCalculatePaymentsHandler handler,
         ILogger<PendingEarningsReprocessor> logger)
     {
         _collectionPeriodService = collectionPeriodService;
         _repository = repository;
         _mapper = mapper;
-        _publisher = publisher;
+        _handler = handler;
         _logger = logger;
     }
 
@@ -41,22 +41,8 @@ public class PendingEarningsReprocessor : IPendingEarningsReprocessor
                 try
                 {
                     var message = _mapper.MapToCalculateGrowthAndSkillsPayments(earning);
-                    var relevantCollectionPeriods = new[] { collectionPeriod };
 
-                    var shortCourseEarningsEvents = _mapper.MapToShortCourseEarningEvents(message, relevantCollectionPeriods);
-                    var dasEarningsReceivedEvents = _mapper.MapToDasEarningsReceivedEvents(message, relevantCollectionPeriods);
-
-                    foreach (var shortCourseEarningsEvent in shortCourseEarningsEvents)
-                    {
-                        await _publisher.Publish(shortCourseEarningsEvent);
-                    }
-
-                    foreach (var dasEarningsReceivedEvent in dasEarningsReceivedEvents)
-                    {
-                        await _publisher.Publish(dasEarningsReceivedEvent);
-                    }
-
-                    await _repository.MarkEarningProcessed(earning.EarningsId, collectionPeriod.AcademicYear, (byte)collectionPeriod.Period, DateTime.UtcNow);
+                    await _handler.HandleGslCalculatePaymentsMessage(message, isReprocessing: true);
 
                     processedCount++;
                 }

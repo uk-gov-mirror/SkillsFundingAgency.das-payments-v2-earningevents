@@ -15,7 +15,7 @@ namespace SFA.DAS.Payments.EarningEvents.Data.Configuration
             builder.Property(x => x.GrowthAndSkillsEarningsId).HasColumnName("GrowthAndSkillsEarningsId").IsRequired();
             builder.Property(x => x.Price).HasColumnName("Price").IsRequired().HasColumnType("decimal(15,5)");
             builder.Property(x => x.StartDate).HasColumnName("StartDate").IsRequired();
-            builder.Property(x => x.EndDate).HasColumnName("EndDate").IsRequired();
+            builder.Property(x => x.EndDate).HasColumnName("EndDate");
             builder.Property(x => x.DeliveryPeriod).HasColumnName("DeliveryPeriod").IsRequired();
             builder.Property(x => x.AcademicYear).HasColumnName("AcademicYear").IsRequired();
             builder.Property(x => x.EarningType).HasColumnName("EarningType").IsRequired();

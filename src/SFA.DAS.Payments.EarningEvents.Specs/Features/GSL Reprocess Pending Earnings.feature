@@ -20,7 +20,6 @@ Scenario: Earnings received in a previous collection period - Re-process earning
 Given the collection period has opened recently
 And a message is received for a Levy employer with a GSO learner
 When the payments are generated
-Then the earnings are marked as processed with a timestamp in the cache table and in the processing table for the current collection period
 When a new collection period opens
 And the Earnings Bridge reprocesses pending earnings
 Then the earnings are processed

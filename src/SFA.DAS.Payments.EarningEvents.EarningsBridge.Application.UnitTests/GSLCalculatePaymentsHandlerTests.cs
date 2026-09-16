@@ -170,6 +170,38 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.UnitTests
         }
 
         [Test]
+        public async Task Freshness_check_is_skipped_when_reprocessing()
+        {
+            // Arrange
+            _gslService.Setup(x => x.CheckEarningsAreLatest(It.IsAny<List<GrowthAndSkillsEarningModel>>(), It.IsAny<Guid>())).Returns(false);
+            var handler = new GSLCalculatePaymentsHandler(_validator, _mapper, _repository.Object, _gslService.Object, _publisher.Object,
+                                                          _collectionPeriodService.Object, _logger.Object);
+
+            // Act
+            await handler.HandleGslCalculatePaymentsMessage(_message, isReprocessing: true);
+
+            // Assert
+            _repository.Verify(r => r.GetGrowthAndSkillsEarnings(It.IsAny<long>(), It.IsAny<long>(), It.IsAny<string>()), Times.Never);
+            _gslService.Verify(x => x.CheckEarningsAreLatest(It.IsAny<List<GrowthAndSkillsEarningModel>>(), It.IsAny<Guid>()), Times.Never);
+            _publisher.Verify(p => p.Publish<GSLShortCourseEarningsEvent>(It.IsAny<GSLShortCourseEarningsEvent>()), Times.Once);
+        }
+
+        [Test]
+        public async Task SaveEarnings_is_not_called_when_reprocessing()
+        {
+            // Arrange
+            var handler = new GSLCalculatePaymentsHandler(_validator, _mapper, _repository.Object, _gslService.Object, _publisher.Object,
+                                                          _collectionPeriodService.Object, _logger.Object);
+
+            // Act
+            await handler.HandleGslCalculatePaymentsMessage(_message, isReprocessing: true);
+
+            // Assert
+            _repository.Verify(r => r.SaveEarnings(It.IsAny<GrowthAndSkillsEarningModel>()), Times.Never);
+            _repository.Verify(r => r.MarkEarningProcessed(_message.EarningsId, 2526, 2, It.IsAny<DateTime>()), Times.Once);
+        }
+
+        [Test]
         public async Task Earnings_are_not_sent_to_service_bus_if_collection_period_not_open()
         {
             // Arrange

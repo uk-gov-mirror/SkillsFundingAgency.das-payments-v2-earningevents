@@ -33,6 +33,7 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         private EmployerType employerType;
         private Guid earningsId;
         private List<EarningPeriod> earningPeriods;
+        private List<CollectionPeriodModel> openedCollectionPeriods;
 
         public EarningEventsStepDefinitions(ScenarioContext scenarioContext)
         {
@@ -55,12 +56,37 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
             employerType = EmployerType.Levy;
             earningsId = Guid.Empty;
             earningPeriods = new List<EarningPeriod>();
+            openedCollectionPeriods = new List<CollectionPeriodModel>();
             Console.WriteLine($"UKPRN : {testSession.Provider.Ukprn}, ULN: {testSession.Learner.Uln}, collection year: {currentAcademicYear}");
         }
 
         [AfterScenario]
-        public void AfterScenario()
+        public async Task AfterScenario()
         {
+            if (openedCollectionPeriods.Any())
+            {
+                testSession.DataContext.CollectionPeriods.RemoveRange(openedCollectionPeriods);
+            }
+
+            if (earningsId != Guid.Empty)
+            {
+                var pricePeriods = await testSession.DataContext.GrowthAndSkillsEarningPricePeriods
+                    .Where(x => x.GrowthAndSkillsEarningsId == earningsId)
+                    .ToListAsync();
+                testSession.DataContext.GrowthAndSkillsEarningPricePeriods.RemoveRange(pricePeriods);
+
+                var processingRecords = await testSession.DataContext.GrowthAndSkillsEarningsProcessing
+                    .Where(x => x.GrowthAndSkillsEarningId == earningsId)
+                    .ToListAsync();
+                testSession.DataContext.GrowthAndSkillsEarningsProcessing.RemoveRange(processingRecords);
+
+                var earnings = await testSession.DataContext.GrowthAndSkillsEarnings
+                    .Where(x => x.EarningsId == earningsId)
+                    .ToListAsync();
+                testSession.DataContext.GrowthAndSkillsEarnings.RemoveRange(earnings);
+            }
+
+            await testSession.DataContext.SaveChangesAsync();
         }
 
         [Given("a CalculatedRequiredLevyAmount message is received for a Levy employer with a GSO learner")]
@@ -126,7 +152,7 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
 
         private async Task OpenCollectionPeriod(short academicYear, byte period)
         {
-            testSession.DataContext.CollectionPeriods.Add(new CollectionPeriodModel
+            var collectionPeriodModel = new CollectionPeriodModel
             {
                 AcademicYear = academicYear,
                 CompletionDate = DateTime.Today,
@@ -135,8 +161,11 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
                 ReferenceDataValidationDate = null,
                 StartDateTime = DateTime.Today,
                 Status = CollectionPeriodStatus.Open
-            });
+            };
+            testSession.DataContext.CollectionPeriods.Add(collectionPeriodModel);
             await testSession.DataContext.SaveChangesAsync();
+
+            openedCollectionPeriods.Add(collectionPeriodModel);
         }
 
         [Given("a Learner changes from a Levy to a Non-levy employer")]
@@ -522,6 +551,10 @@ namespace SFA.DAS.Payments.EarningEvents.Specs.StepDefinitions
         [Then("the earnings are marked as processed with a timestamp in the cache table and in the processing table for the current collection period")]
         public async Task ThenTheEarningsAreMarkedAsProcessedWithATimestampInTheCacheTableAndInTheProcessingTableForTheCurrentCollectionPeriod()
         {
+            await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarnings
+                .AsNoTracking()
+                .Any(x => x.EarningsId == earningsId), "Failed to find the earnings in the Earnings Bridge cache table");
+
             await testSession.WaitForIt(() => testSession.DataContext.GrowthAndSkillsEarningPricePeriods
                 .AsNoTracking()
                 .Any(x => x.GrowthAndSkillsEarningsId == earningsId
