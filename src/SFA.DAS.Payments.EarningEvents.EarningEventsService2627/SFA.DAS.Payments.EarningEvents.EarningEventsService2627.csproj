@@ -34,8 +34,8 @@
     <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="3.0.0" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" Version="3.2.1" />
     <PackageReference Include="SFA.DAS.Payments.ServiceFabric.Core" Version="2.0.5" />
-    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Client" Version="2.1.8-prerelease-5" />
-    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Messages" Version="2.1.8-prerelease-5" />
+    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Client" Version="2.1.8-prerelease-6" />
+    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Messages" Version="2.1.8-prerelease-6" />
   </ItemGroup>
 
   <ItemGroup>

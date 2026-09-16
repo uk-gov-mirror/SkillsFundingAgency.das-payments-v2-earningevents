@@ -39,8 +39,8 @@
 
     <PackageReference Include="SFA.DAS.Payments.Application" Version="2.4.1-prerelease-62" />
     <PackageReference Include="SFA.DAS.Payments.ServiceFabric.Core" Version="2.0.5" />
-    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Client" Version="2.1.8-prerelease-5" />
-    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Messages" Version="2.1.8-prerelease-5" />
+    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Client" Version="2.1.8-prerelease-6" />
+    <PackageReference Include="SFA.DAS.Payments.Monitoring.Jobs.Messages" Version="2.1.8-prerelease-6" />
     <PackageReference Include="SFA.DAS.Payments.JobContextMessageHandling" Version="2.0.3" />
   </ItemGroup>
 
