@@ -81,10 +81,7 @@ namespace SFA.DAS.Payments.EarningEvents.EarningsBridge.Application.Handlers
 
             if(!openCollectionPeriods.Any())
             {
-                if (!isReprocessing)
-                {
-                    await _repository.SaveEarnings(growthAndSkillsEarningModel);
-                }
+                await _repository.SaveEarnings(growthAndSkillsEarningModel);
                 return;
             }
 
